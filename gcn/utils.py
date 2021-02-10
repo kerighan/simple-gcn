@@ -19,8 +19,8 @@ def graph_to_sparse_tensor(G):
             neighbor_id = node2id[neighbor]
             values.append(norm)
             indices.append([node_id, neighbor_id])
-    A = tf.sparse.reorder(
-        tf.SparseTensor(indices, values, (n_nodes, n_nodes)))
+    A = tf.SparseTensor(indices, values, (n_nodes, n_nodes))
+    A = tf.sparse.reorder(A)
     return A
 
 
