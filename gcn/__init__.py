@@ -124,5 +124,5 @@ class GCN:
 
 def softmax(x):
     score = np.exp(x)
-    score /= score.sum(axis=1)[:, None]
+    score /= score.sum(axis=1)
     return score
