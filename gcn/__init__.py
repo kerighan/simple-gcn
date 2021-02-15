@@ -51,6 +51,20 @@ class GCN:
         for i, f in enumerate(feats):
             features[i, :f.shape[0]] = f
         return features
+    
+    def predict_graph(self, features):
+        values = features @ self.W
+        score = self.scalar * np.tanh(values @ self.S)
+        # softmax
+        score = np.exp(score)
+        score /= score.sum()
+        
+        embedding = np.sum(score * values, axis=0)
+        dense = embedding @ self.D
+        dense = 1 / (1 + np.exp(-dense))
+        out = dense @ self.O
+        return out.argmax()
+
 
     def fit_graphs(self, features, labels):
         input_length = features.shape[1]
@@ -91,6 +105,12 @@ class GCN:
         y_pred = out.numpy().argmax(axis=-1)
         accuracy = (y_pred == labels).mean()
         print(f"accuracy={accuracy:.02}")
+
+        self.W = W.numpy()
+        self.S = S.numpy()
+        self.O = O.numpy()
+        self.D = D.numpy()
+        self.scalar = scalar.numpy()
 
     def fit(self, G, features, labels):
         # define parameters
