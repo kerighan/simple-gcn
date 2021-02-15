@@ -18,4 +18,3 @@ gcn.save("test.p")
 gcn = GCN.load("test.p")
 y_pred = gcn.predict(G, features)
 print(np.mean(labels == y_pred))
-

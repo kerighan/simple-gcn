@@ -46,3 +46,18 @@ def graph_to_sparse(G):
                    shape=(n_nodes, n_nodes),
                    dtype=np.float32)
     return A
+
+
+def get_agglomerated_features(G, features):
+    node2id = {node: i for i, node in enumerate(G.nodes)}
+
+    feats = np.zeros_like(features)
+    for node in G.nodes:
+        node_id = node2id[node]
+        norm = 1 / (G.degree(node) + 1)
+        feats[node_id] = features[node_id]
+        for neighbor in G.neighbors(node):
+            neighbor_id = node2id[neighbor]
+            feats[node_id] += features[neighbor_id]
+        feats[node_id] *= norm
+    return feats
