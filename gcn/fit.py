@@ -1,5 +1,3 @@
-from tensorflow.keras.losses import sparse_categorical_crossentropy
-import tensorflow as tf
 from tqdm import trange
 
 
@@ -8,6 +6,9 @@ def fit_1_layer(
     n_features, n_labels, latent_dim,
     validation_split, n_epochs
 ):
+    from tensorflow.keras.losses import sparse_categorical_crossentropy
+    import tensorflow as tf
+
     # define tf variables and constants
     W = tf.Variable(tf.random.normal((n_features, latent_dim)))
     O = tf.Variable(tf.random.normal((latent_dim, n_labels)))
@@ -41,6 +42,9 @@ def fit_2_layer(
     n_features, n_labels, latent_dim,
     validation_split, n_epochs
 ):
+    from tensorflow.keras.losses import sparse_categorical_crossentropy
+    import tensorflow as tf
+
     # define tf variables and constants
     W_1 = tf.Variable(tf.random.normal((n_features, latent_dim)))
     W_2 = tf.Variable(tf.random.normal((latent_dim, latent_dim)))
@@ -79,6 +83,9 @@ def fit_3_layer(
     n_features, n_labels, latent_dim,
     validation_split, n_epochs
 ):
+    from tensorflow.keras.losses import sparse_categorical_crossentropy
+    import tensorflow as tf
+
     # define tf variables and constants
     W_1 = tf.Variable(tf.random.normal((n_features, latent_dim)))
     W_2 = tf.Variable(tf.random.normal((latent_dim, latent_dim)))

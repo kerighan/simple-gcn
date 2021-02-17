@@ -4,7 +4,6 @@ from .utils import (
     graph_to_sparse_tensor,
     get_agglomerated_features)
 from tqdm import trange
-import tensorflow as tf
 import numpy as np
 
 
@@ -65,6 +64,8 @@ class GCN:
         return out.argmax()
 
     def fit_graphs(self, features, labels):
+        import tensorflow as tf
+
         input_length = features.shape[1]
         input_dim = features.shape[2]
         n_labels = labels.max() + 1
@@ -111,6 +112,8 @@ class GCN:
         self.scalar = scalar.numpy()
 
     def fit(self, G, features, labels):
+        import tensorflow as tf
+
         # define parameters
         n_nodes, n_features = features.shape
         n_labels = labels.max() + 1
