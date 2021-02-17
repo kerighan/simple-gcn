@@ -8,7 +8,7 @@ features = np.load("datasets/features.npy")
 labels = np.load("datasets/labels.npy").argmax(axis=1)
 
 # create GCN
-gcn = GCN(n_layers=2, activation="tanh", validation_split=0.5)
+gcn = GCN(n_layers=3, activation="tanh", validation_split=0.5)
 
 # fit and persist model to disk
 gcn.fit(G, features, labels)

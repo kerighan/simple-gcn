@@ -1,4 +1,4 @@
-from gcn.fit import fit_1_layer, fit_2_layer
+from gcn.fit import fit_1_layer, fit_2_layer, fit_3_layer
 from .utils import (
     graph_to_sparse,
     graph_to_sparse_tensor,
@@ -122,6 +122,7 @@ class GCN:
         X = tf.constant(features, dtype=np.float32)
 
         # define training samples
+        mask = None
         validation_split = self.validation_split
         if validation_split > 0:
             val_size = int(round(n_nodes * validation_split))
@@ -155,6 +156,15 @@ class GCN:
                 validation_split, n_epochs)
             self.W_1 = W_1.numpy()
             self.W_2 = W_2.numpy()
+            self.O = O.numpy()
+        elif self.n_layers == 3:
+            out, W_1, W_2, W_3, O = fit_3_layer(
+                A, X, labels, mask, activation,
+                n_features, n_labels, latent_dim,
+                validation_split, n_epochs)
+            self.W_1 = W_1.numpy()
+            self.W_2 = W_2.numpy()
+            self.W_3 = W_3.numpy()
             self.O = O.numpy()
 
         y_pred = out.numpy().argmax(axis=1)
@@ -191,6 +201,13 @@ class GCN:
             agg_2 = A @ layer_1
             layer_2 = activation(agg_2 @ self.W_2)
             out = softmax(layer_2 @ self.O)
+        elif self.n_layers == 3:
+            layer_1 = activation(agg_1 @ self.W_1)
+            agg_2 = A @ layer_1
+            layer_2 = activation(agg_2 @ self.W_2)
+            agg_3 = A @ layer_2
+            layer_3 = activation(agg_3 @ self.W_3)
+            out = softmax(layer_3 @ self.O)
         return out.argmax(axis=1)
 
 
