@@ -15,7 +15,7 @@ class GCN:
         latent_dim=48,
         activation="sigmoid",
         n_epochs=100,
-        validation_split=.05
+        validation_split=.0
     ):
         self.latent_dim = latent_dim
         self.activation = activation
