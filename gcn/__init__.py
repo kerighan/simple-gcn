@@ -1,28 +1,27 @@
-from tensorflow.keras.losses import sparse_categorical_crossentropy
+from gcn.fit import fit_1_layer, fit_2_layer
 from .utils import (
     graph_to_sparse,
     graph_to_sparse_tensor,
     get_agglomerated_features)
 from tqdm import trange
 import tensorflow as tf
-import networkx as nx
 import numpy as np
 
 
 class GCN:
     def __init__(
         self,
+        n_layers=1,
         latent_dim=48,
         activation="sigmoid",
         n_epochs=100,
-        validation_split=.05,
-        level="node"
+        validation_split=.05
     ):
         self.latent_dim = latent_dim
         self.activation = activation
         self.n_epochs = n_epochs
         self.validation_split = validation_split
-        self.level = level
+        self.n_layers = n_layers
 
     @staticmethod
     def load(filename):
@@ -64,7 +63,6 @@ class GCN:
         dense = 1 / (1 + np.exp(-dense))
         out = dense @ self.O
         return out.argmax()
-
 
     def fit_graphs(self, features, labels):
         input_length = features.shape[1]
@@ -116,6 +114,12 @@ class GCN:
         # define parameters
         n_nodes, n_features = features.shape
         n_labels = labels.max() + 1
+        latent_dim = self.latent_dim
+        n_epochs = self.n_epochs
+
+        # constant tensors
+        A = graph_to_sparse_tensor(G)
+        X = tf.constant(features, dtype=np.float32)
 
         # define training samples
         validation_split = self.validation_split
@@ -125,15 +129,6 @@ class GCN:
                 range(n_nodes), size=val_size, replace=False)
             mask = np.ones((n_nodes,), dtype=np.float32)
             mask[index_train] = 0
-
-        # define tf variables and constants
-        latent_dim = self.latent_dim
-        A = graph_to_sparse_tensor(G)
-        X = tf.constant(features, dtype=np.float32)
-        W_1 = tf.Variable(tf.random.normal((n_features, latent_dim)))
-        O = tf.Variable(tf.random.normal((latent_dim, n_labels)))
-        agg_1 = tf.sparse.sparse_dense_matmul(A, X)
-        var_list = [W_1, O]
 
         # define activation function
         activation = self.activation
@@ -146,25 +141,21 @@ class GCN:
         else:
             activation = tf.keras.activations.linear
 
-        # training
-        opt = tf.keras.optimizers.Adam(learning_rate=0.1)
-        t = trange(self.n_epochs, desc='training', leave=True)
-        for i in t:
-            with tf.GradientTape() as tape:
-                layer_1 = activation(tf.matmul(agg_1, W_1))
-                out = tf.nn.softmax(tf.matmul(layer_1, O), axis=-1)
-
-                loss = sparse_categorical_crossentropy(labels, out)
-                if validation_split > 0:
-                    loss *= mask
-                grad = tape.gradient(loss, var_list)
-
-            opt.apply_gradients(zip(grad, var_list))
-
-            if i % 10 == 0:
-                l = loss.numpy().mean()
-                t.set_description(f"loss={l:.02}")
-                t.refresh()
+        if self.n_layers == 1:
+            out, W, O = fit_1_layer(
+                A, X, labels, mask, activation,
+                n_features, n_labels, latent_dim,
+                validation_split, n_epochs)
+            self.W = W.numpy()
+            self.O = O.numpy()
+        elif self.n_layers == 2:
+            out, W_1, W_2, O = fit_2_layer(
+                A, X, labels, mask, activation,
+                n_features, n_labels, latent_dim,
+                validation_split, n_epochs)
+            self.W_1 = W_1.numpy()
+            self.W_2 = W_2.numpy()
+            self.O = O.numpy()
 
         y_pred = out.numpy().argmax(axis=1)
         accuracy = np.mean(y_pred == labels)
@@ -172,9 +163,6 @@ class GCN:
         if validation_split > 0:
             val_accuracy = np.mean(y_pred[index_train] == labels[index_train])
             print(f"val_accuracy={val_accuracy:.02}")
-        
-        self.W = W_1.numpy()
-        self.O = O.numpy()
     
     def predict(self, G, features):
         # define parameters
@@ -193,13 +181,23 @@ class GCN:
 
         # get matrices
         A = graph_to_sparse(G)
-        agg = A @ features
-        layer_1 = activation(agg @ self.W)
-        out = softmax(layer_1 @ self.O)
+        agg_1 = A @ features
+        
+        if self.n_layers == 1:
+            layer_1 = activation(agg_1 @ self.W)
+            out = softmax(layer_1 @ self.O)
+        elif self.n_layers == 2:
+            layer_1 = activation(agg_1 @ self.W_1)
+            agg_2 = A @ layer_1
+            layer_2 = activation(agg_2 @ self.W_2)
+            out = softmax(layer_2 @ self.O)
         return out.argmax(axis=1)
 
 
 def softmax(x):
     score = np.exp(x)
-    score /= score.sum(axis=1)
+    try:
+        score /= score.sum(axis=1)
+    except ValueError:
+        score /= score.sum(axis=1)[:, None]
     return score

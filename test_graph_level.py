@@ -7,7 +7,7 @@ G = nx.karate_club_graph()
 x = np.random.normal(size=(len(G.nodes), 2))
 y = 1
 
-gcn = GCN()
+gcn = GCN(n_layers=2)
 gcn.fit_graphs([
     (G, x, y)
 ])
